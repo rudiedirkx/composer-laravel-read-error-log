@@ -1,0 +1,22 @@
+{
+    "name": "rdx/composer-laravel-read-error-log",
+    "description": "read laravel error & deprecation log on cli",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "rdx\\readerrorlog\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/read-error-log"
+    ],
+    "authors": [
+        {
+            "name": "Rudie Dirkx",
+            "email": "github@hotblocks.nl"
+        }
+    ],
+    "require": {
+    }
+}

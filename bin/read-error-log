@@ -1,0 +1,104 @@
+#!/usr/bin/env php
+<?php
+
+$args = array_slice($_SERVER['argv'], 1);
+if (!count($args)) {
+	echo "Missing file argument\n";
+	exit(1);
+}
+
+$project = null;
+$file = array_shift($args);
+if ($file[0] != '/') {
+	$file = getcwd() . '/' . $file;
+	if (file_exists(getcwd() . '/composer.json')) {
+		$project = getcwd() . '/';
+	}
+}
+
+$count = false;
+$filters = $args;
+if (in_array('--count', $filters)) {
+	$filters = [];
+	$count = true;
+}
+
+$fp = @fopen($file, 'r');
+if (!$fp) {
+	echo "File '$file' not found\n";
+	exit(1);
+}
+
+$buffer = '';
+$skips = 0;
+$errors = [];
+while (!feof($fp)) {
+	$buffer .= fread($fp, 25000);
+
+	if (preg_match('#\[(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)\] #', getLastLine($buffer))) {
+		$skips++;
+	}
+	else {
+		preg_match_all('#\[(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)\] ([^\n\r]+)#', $buffer, $matches, PREG_SET_ORDER);
+		foreach ($matches as $match) {
+			$error = trim($match[2]);
+			if ($project) {
+				$error = str_replace($project, '', $error);
+			}
+			$errors[] = [trim($match[1]), $error];
+		}
+
+		$buffer = '';
+	}
+}
+
+if ($count) {
+	$counts = [];
+	foreach ($errors as [$datetime, $error]) {
+		$error = preg_replace('# \{".+#', '', $error);
+		isset($counts[$error]) or $counts[$error] = 0;
+		$counts[$error]++;
+	}
+	asort($counts, SORT_NUMERIC);
+
+	foreach ($counts as $error => $num) {
+		echo sprintf("% 4d - %s\n", $num, $error);
+	}
+
+	echo "\n";
+	echo count($counts) . " different errors\n";
+	exit;
+}
+
+$COLUMNS = exec("tput cols");
+$maxlength = $filters ? 999 : ($COLUMNS ? $COLUMNS - 19 - 2 - 1 : 150);
+$filtered = 0;
+foreach ($errors as list($datetime, $error)) {
+	if (filterLine($filters, $error)) {
+		$filtered++;
+		echo $datetime . '  ' . substr($error, 0, $maxlength) . "\n";
+		if ($filters) {
+			echo "\n";
+		}
+	}
+}
+
+echo "\n";
+echo "$filtered / " . count($errors) . " errors\n";
+echo "$skips skips\n";
+
+
+
+function filterLine(array $filters, string $line) : bool {
+	foreach ($filters as $string) {
+		if (strpos($line, $string) === false ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function getLastLine(string $buffer) : string {
+	$lines = explode("\n", $buffer);
+	return trim(end($lines));
+}
