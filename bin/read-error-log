@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
 
+$tzRegex = '[\w\/]+';
+$dateRegex = "\[(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d|\d\d\-\w+\-\d\d\d\d \d\d:\d\d:\d\d $tzRegex)\]";
+
 $args = array_slice($_SERVER['argv'], 1);
 if (!count($args)) {
 	echo "Missing file argument\n";
@@ -29,26 +32,12 @@ if (!$fp) {
 	exit(1);
 }
 
-$buffer = '';
-$skips = 0;
 $errors = [];
-while (!feof($fp)) {
-	$buffer .= fread($fp, 25000);
-
-	if (preg_match('#\[(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)\] #', getLastLine($buffer))) {
-		$skips++;
-	}
-	else {
-		preg_match_all('#\[(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)\] ([^\n\r]+)#', $buffer, $matches, PREG_SET_ORDER);
-		foreach ($matches as $match) {
-			$error = trim($match[2]);
-			if ($project) {
-				$error = str_replace($project, '', $error);
-			}
-			$errors[] = [trim($match[1]), $error];
-		}
-
-		$buffer = '';
+while (($buffer = fgets($fp)) !== false) {
+	if (preg_match("#^$dateRegex#", trim($buffer), $match)) {
+		$datetime = date('Y-m-d H:i:s', strtotime(preg_replace("# $tzRegex$#", '', trim($match[1]))));
+		$error = trim(substr($buffer, strlen($match[0])));
+		$errors[] = [$datetime, $error];
 	}
 }
 
@@ -85,7 +74,6 @@ foreach ($errors as list($datetime, $error)) {
 
 echo "\n";
 echo "$filtered / " . count($errors) . " errors\n";
-echo "$skips skips\n";
 
 
 
@@ -96,9 +84,4 @@ function filterLine(array $filters, string $line) : bool {
 		}
 	}
 	return true;
-}
-
-function getLastLine(string $buffer) : string {
-	$lines = explode("\n", $buffer);
-	return trim(end($lines));
 }
