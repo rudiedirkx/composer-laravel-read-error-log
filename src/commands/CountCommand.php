@@ -17,7 +17,8 @@ class CountCommand extends Command {
 		$this->setDescription('Count unique errors.');
 		$this->setDefinition([
 			new InputArgument('file', InputArgument::REQUIRED, 'The log file to read'),
-			new InputOption('project-path', null, InputOption::VALUE_REQUIRED, 'Optional project path to remove from messages.'),
+			new InputOption('project-path', null, InputOption::VALUE_REQUIRED, 'Remove this project path from messages.'),
+			new InputOption('after', null, InputOption::VALUE_REQUIRED, 'Only count errors after this datetime.'),
 		]);
 	}
 
@@ -38,13 +39,18 @@ class CountCommand extends Command {
 			return 1;
 		}
 
+		$after = $input->getOption('after');
+		$after = $after ? strtotime($after) : 0;
+
 		$counts = $utcs = [];
 		foreach ($reader->getFirstLines($projectPath) as $line) {
-			$error = $line->getError();
-			$counts[$error] ??= 0;
-			$counts[$error]++;
+			if ($line->getUtc() > $after) {
+				$error = $line->getError();
+				$counts[$error] ??= 0;
+				$counts[$error]++;
 
-			$utcs[$error] = $line->getUtc();
+				$utcs[$error] = $line->getUtc();
+			}
 		}
 		asort($counts, SORT_NUMERIC);
 
