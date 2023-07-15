@@ -5,8 +5,8 @@ use rdx\readerrorlog\Application;
 use rdx\readerrorlog\LogManager;
 
 if (
+	!file_exists($file = __DIR__ . '/../../../autoload.php') &&
 	!file_exists($file = __DIR__ . '/../../autoload.php') &&
-	!file_exists($file = __DIR__ . '/../autoload.php') &&
 	!file_exists($file = __DIR__ . '/vendor/autoload.php') &&
 	!file_exists($file = __DIR__ . '/../vendor/autoload.php')
 ) {
