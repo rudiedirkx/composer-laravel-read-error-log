@@ -38,19 +38,21 @@ class CountCommand extends Command {
 			return 1;
 		}
 
-		$errors = [];
+		$counts = $utcs = [];
 		foreach ($reader->getFirstLines($projectPath) as $line) {
 			$error = $line->getError();
-			$errors[$error] ??= 0;
-			$errors[$error]++;
-		}
-		asort($errors, SORT_NUMERIC);
+			$counts[$error] ??= 0;
+			$counts[$error]++;
 
-		foreach ($errors as $error => $num) {
-			echo sprintf("% 4d - %s\n", $num, $error);
+			$utcs[$error] = $line->getUtc();
+		}
+		asort($counts, SORT_NUMERIC);
+
+		foreach ($counts as $error => $num) {
+			echo sprintf("% 4d - %s (last @ %s)\n", $num, $error, date('Y-m-d H:i:s', $utcs[$error]));
 		}
 		echo "\n";
-		echo count($errors) . " different errors\n";
+		echo count($counts) . " different errors\n";
 
 		return 0;
 	}
