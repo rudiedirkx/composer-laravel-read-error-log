@@ -4,15 +4,7 @@
 use rdx\readerrorlog\Application;
 use rdx\readerrorlog\LogManager;
 
-if (
-	!file_exists($file = __DIR__ . '/../../../autoload.php') &&
-	!file_exists($file = __DIR__ . '/../../autoload.php') &&
-	!file_exists($file = __DIR__ . '/vendor/autoload.php') &&
-	!file_exists($file = __DIR__ . '/../vendor/autoload.php')
-) {
-	exit("Missing autoload.php... Project installed?\n");
-}
-require $file;
+require $_composer_autoload_path ?? __DIR__ . '/../vendor/autoload.php';
 
 $app = new Application(new LogManager(getcwd()));
 $app->run();
