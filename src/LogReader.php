@@ -15,7 +15,8 @@ class LogReader /*implements IteratorAggregate*/ {
 	public function __construct(
 		protected string $logfile,
 	) {
-		if (!($this->fh = @fopen($logfile, 'r'))) {
+		$opener = str_ends_with($logfile, '.gz') ? 'gzopen' : 'fopen';
+		if (!($this->fh = @$opener($logfile, 'r'))) {
 			throw new LogReaderException(sprintf("Can't read log file '%s'", $logfile));
 		}
 	}
