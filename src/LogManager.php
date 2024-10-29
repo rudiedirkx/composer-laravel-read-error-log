@@ -16,12 +16,12 @@ class LogManager {
 		return null;
 	}
 
-	public function getReader(string $logfile) : LogReader {
+	public function getReader(string $logfile, bool $forceSize = false) : LogReader {
 		if ($logfile[0] == '/') {
-			return new LogReader($logfile);
+			return new LogReader($logfile, $forceSize);
 		}
 
-		return new LogReader("$this->cwd/$logfile");
+		return new LogReader("$this->cwd/$logfile", $forceSize);
 	}
 
 }

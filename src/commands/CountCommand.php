@@ -23,6 +23,7 @@ class CountCommand extends Command {
 			new InputOption('after', null, InputOption::VALUE_REQUIRED, 'Only count errors after this datetime.'),
 			new InputOption('sort', null, InputOption::VALUE_REQUIRED, 'Sort by num|date'),
 			new InputOption('time', null, InputOption::VALUE_NONE, 'Show full time with date'),
+			new InputOption('force-size', null, InputOption::VALUE_NONE, 'Read the full log, no matter the size'),
 		]);
 	}
 
@@ -32,11 +33,15 @@ class CountCommand extends Command {
 		$logfile = $input->getArgument('file');
 		$projectPath = $input->getOption('project-path') ?: $manager->findProjectPath($logfile);
 
+		$forceSize = $input->getOption('force-size');
+
+		$time = microtime(true);
+
 		try {
-			$reader = $manager->getReader($logfile);
+			$reader = $manager->getReader($logfile, $forceSize);
 		}
 		catch (LogReaderException $ex) {
-			throw new RuntimeException("Invalid file.");
+			throw new RuntimeException($ex->getMessage());
 		}
 
 		$after = $input->getOption('after');
@@ -68,12 +73,13 @@ class CountCommand extends Command {
 			$numPad = max($numPad, strlen(strval($count->getNum())));
 		}
 
+		$time = microtime(true) - $time;
+
 		foreach ($errors as $error => $count) {
 			$datetime = date($dtFormat, $count->getUtc());
 			printf("% {$numPad}d  (%s)  %s\n", $count->getNum(), $datetime, $error);
 		}
-		echo "\n";
-		echo count($errors) . " different errors\n";
+		printf("\n%d different errors. %.1f sec.\n", count($errors), $time);
 
 		return 0;
 	}
