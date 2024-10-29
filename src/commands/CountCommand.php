@@ -62,9 +62,15 @@ class CountCommand extends Command {
 
 		$fullTime = $input->getOption('time');
 		$dtFormat = $fullTime ? 'Y-m-d H:i:s' : 'Y-m-d';
+
+		$numPad = 1;
+		foreach ($errors as $count) {
+			$numPad = max($numPad, strlen(strval($count->getNum())));
+		}
+
 		foreach ($errors as $error => $count) {
 			$datetime = date($dtFormat, $count->getUtc());
-			printf("% 4d  (%s)  %s\n", $count->getNum(), $datetime, $error);
+			printf("% {$numPad}d  (%s)  %s\n", $count->getNum(), $datetime, $error);
 		}
 		echo "\n";
 		echo count($errors) . " different errors\n";
