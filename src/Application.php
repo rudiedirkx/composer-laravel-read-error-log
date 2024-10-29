@@ -3,6 +3,7 @@
 namespace rdx\readerrorlog;
 
 use Symfony\Component\Console\Application as BaseApplication;
+use Symfony\Component\Console\Command as sfCommands;
 use Symfony\Component\Console\Input\InputInterface;
 use rdx\readerrorlog\commands;
 
@@ -20,6 +21,8 @@ class Application extends BaseApplication {
 
 	protected function getDefaultCommands() : array {
 		return [
+			new sfCommands\HelpCommand(),
+			new sfCommands\ListCommand(),
 			new commands\AllCommand(),
 			new commands\CountCommand(),
 		];

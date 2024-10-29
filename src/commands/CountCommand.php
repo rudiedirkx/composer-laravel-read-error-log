@@ -3,11 +3,13 @@
 namespace rdx\readerrorlog\commands;
 
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Terminal;
+use rdx\readerrorlog\ErrorCount;
 use rdx\readerrorlog\LogReaderException;
 
 class CountCommand extends Command {
@@ -19,46 +21,53 @@ class CountCommand extends Command {
 			new InputArgument('file', InputArgument::REQUIRED, 'The log file to read'),
 			new InputOption('project-path', null, InputOption::VALUE_REQUIRED, 'Remove this project path from messages.'),
 			new InputOption('after', null, InputOption::VALUE_REQUIRED, 'Only count errors after this datetime.'),
+			new InputOption('sort', null, InputOption::VALUE_REQUIRED, 'Sort by num|date'),
+			new InputOption('time', null, InputOption::VALUE_NONE, 'Show full time with date'),
 		]);
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) : int {
 		$manager = $this->getApplication()->getManager();
-// print_r($manager);
 
 		$logfile = $input->getArgument('file');
 		$projectPath = $input->getOption('project-path') ?: $manager->findProjectPath($logfile);
-// var_dump($projectPath);
 
 		try {
 			$reader = $manager->getReader($logfile);
 		}
 		catch (LogReaderException $ex) {
-			// $this->getApplication()->renderThrowable($ex, $output);
-			$output->writeLn('<error>Invalid file.</error>');
-			return 1;
+			throw new RuntimeException("Invalid file.");
 		}
 
 		$after = $input->getOption('after');
 		$after = $after ? strtotime($after) : 0;
 
-		$counts = $utcs = [];
+		$errors = [];
 		foreach ($reader->getFirstLines($projectPath) as $line) {
 			if ($line->getUtc() > $after) {
 				$error = $line->getError();
-				$counts[$error] ??= 0;
-				$counts[$error]++;
-
-				$utcs[$error] = $line->getUtc();
+				$errors[$error] ??= new ErrorCount();
+				$errors[$error]->countInstance($line);
 			}
 		}
-		asort($counts, SORT_NUMERIC);
 
-		foreach ($counts as $error => $num) {
-			echo sprintf("% 4d - %s (last @ %s)\n", $num, $error, date('Y-m-d H:i:s', $utcs[$error]));
+		$sort = $input->getOption('sort');
+		if ($sort === 'date') {
+			$sorter = fn($a, $b) => $a->getUtc() <=> $b->getUtc();
+		}
+		else {
+			$sorter = fn($a, $b) => $a->getNum() <=> $b->getNum();
+		}
+		uasort($errors, $sorter);
+
+		$fullTime = $input->getOption('time');
+		$dtFormat = $fullTime ? 'Y-m-d H:i:s' : 'Y-m-d';
+		foreach ($errors as $error => $count) {
+			$datetime = date($dtFormat, $count->getUtc());
+			printf("% 4d  (%s)  %s\n", $count->getNum(), $datetime, $error);
 		}
 		echo "\n";
-		echo count($counts) . " different errors\n";
+		echo count($errors) . " different errors\n";
 
 		return 0;
 	}

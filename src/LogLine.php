@@ -7,7 +7,14 @@ class LogLine {
 	public function __construct(
 		protected string $line,
 		protected int $utc,
-	) {}
+	) {
+		$this->trimLine();
+	}
+
+	protected function trimLine() : void {
+		// Remove Laravel's "local.ERROR: "
+		$this->line = preg_replace('#[a-z]+\.[A-Z]+: #', '', $this->line);
+	}
 
 	public function getLine() : string {
 		return $this->line;
